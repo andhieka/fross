@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', function(){
 	assetManager.setCompletionHandler(gameIsReady);
 	assetManager.setDownloadedHandler(downloadedHandler);
 	assetManager.downloadAssets();
-
+	initializeJoystick();
 });
 
 function downloadedHandler() {
