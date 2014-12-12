@@ -114,3 +114,40 @@ body {
 	-webkit-transition: opacity 0.3s;
 	-moz-transition: opacity 0.3s;
 }
+
+#joystick {
+	z-index: 2;
+	position: absolute;
+	left: 50px;
+	top: 450px;
+	width: 100px;
+	height: 100px;
+
+}
+
+#inner-circle {
+	position: absolute;
+	left: 25px;
+	top: 25px;
+	width: 50px;
+	height: 50px;
+	background-color: white;
+	opacity: 0.75;
+	-webkit-border-radius: 25px;
+	-moz-border-radius: 25px;
+	border-radius: 25px; 
+	cursor: pointer;
+}
+
+#outer-circle {
+	position: absolute;
+	left: 0px;
+	top: 0px;
+	width: 100px;
+	height: 100px;
+	background-color: white;
+	opacity: 0.2;
+	-webkit-border-radius: 50px;
+	-moz-border-radius: 50px;
+	border-radius: 50px; 
+}
