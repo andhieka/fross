@@ -1,5 +1,6 @@
-var BOUNDING_RECT_OFFSET = 0;
-var BOUNDING_RECT_SIZE = 64;
+var BOUNDING_RECT_OFFSET = 8;
+var BOUNDING_RECT_SIZE = 48;
+var BGM_URL = 'assets/silverbell.mp3';
 var TIME_ALIVE = 2000;
 var MAP_LEFT = 100;
 var MAP_TOP = 100;
@@ -15,6 +16,8 @@ var announcement;
 var startButton;
 var lastIdle;
 var levelBoard;
+var countdown;
+var counterloop;
 
 document.addEventListener('DOMContentLoaded', function(){
 	display = document.getElementById('display');
@@ -30,11 +33,21 @@ document.addEventListener('DOMContentLoaded', function(){
 	assetManager.pushAssetURL('assets/Tile_Broken.png');
 	assetManager.pushAssetURL('assets/Tile_Finish_Locked.png');
 	assetManager.pushAssetURL('assets/Tile_Blocked.png');
+	assetManager.pushAssetURL({'url': BGM_URL, 'type': 'sound'});
 	assetManager.setCompletionHandler(gameIsReady);
 	assetManager.setDownloadedHandler(downloadedHandler);
 	assetManager.downloadAssets();
 
 });
+
+function BGMStarter() {
+	BGM = assetManager.getAsset(BGM_URL);
+	BGM.addEventListener('ended', function() {
+		this.currentTime = 0;
+		this.play();
+	}, false);
+	BGM.play();
+}
 
 function downloadedHandler() {
 	var progress = (assetManager.processed / assetManager.numOfAssets) * 100;
@@ -43,22 +56,38 @@ function downloadedHandler() {
 
 function gameIsReady() {
 	Tile.prototype.setImages();
+	BGMStarter();
 	startButton.innerHTML = 'Start Fross';
 	startButton.addEventListener('click', function() {
-		startButton.style.setProperty('z-index', -1);
-		startButton.style.setProperty('opacity', 0);
-		var instruction = document.getElementById('instruction');
-		instruction.style.setProperty('opacity', 0);
-		instruction.style.setProperty('z-index', -1);
-		initializeGame();
-	})
+		startButtonHandler();
+	});
+	document.addEventListener('keydown', keyDownHandler);
+}
+
+function startButtonHandler() {
+	document.removeEventListener('keydown', keyDownHandler);
+	startButton.style.setProperty('z-index', -1);
+	startButton.style.setProperty('opacity', 0);
+	var instruction = document.getElementById('instruction');
+	instruction.style.setProperty('opacity', 0);
+	instruction.style.setProperty('z-index', -1);
+	initializeGame();
+}
+
+function keyDownHandler() {
+	startButtonHandler();
 }
 
 function initializeGame() {
+	clearScreen()
 	initializeEventListener();
 	initializePlayer(0, 0);
 	initializeMap(MAP_LEFT, MAP_TOP);
 	command = {};
+	countDownBeforeGameLoop();
+}
+
+function startGameLoop() {
 	lastIdle = Date.now();
 	gameloop = setInterval(function() {
 		gameLogic();
@@ -81,6 +110,7 @@ function setMapLevel(level, left, top) {
 	gameMap = new FloorMap(level, mapDisplay, left, top);
 	var startPos = gameMap.getStartingPosition();
 	player.setPosition(startPos.left, startPos.top);
+	player.render();
 }
 
 function initializeEventListener() {
@@ -118,25 +148,25 @@ function gameLogic() {
 function commandHandler() {
 	var notMoving = true;
 	if(command['UP']) {
-		if(collisionCheck(BOUNDING_RECT_OFFSET, BOUNDING_RECT_OFFSET - 10, BOUNDING_RECT_SIZE, BOUNDING_RECT_SIZE)) {
+		if(collisionCheck(32, 32-10, 1, 1)) {
 			notMoving = false;
 			player.moveUp();
 		}
 	}
 	if(command['DOWN']) {
-		if(collisionCheck(BOUNDING_RECT_OFFSET, -BOUNDING_RECT_OFFSET + 15, BOUNDING_RECT_SIZE, BOUNDING_RECT_SIZE)) {
+		if(collisionCheck(32, 32+10, 1, 1)) {
 			notMoving = false;
 			player.moveDown();
 		}
 	}
 	if(command['RIGHT']) {
-		if(collisionCheck(-BOUNDING_RECT_OFFSET + 10, BOUNDING_RECT_OFFSET, BOUNDING_RECT_SIZE, BOUNDING_RECT_SIZE)) {
+		if(collisionCheck(32 + 10, 32, 1, 1)) {
 			notMoving = false;
 			player.moveRight();
 		}
 	}
 	if(command['LEFT']) {
-		if(collisionCheck(BOUNDING_RECT_OFFSET - 10, BOUNDING_RECT_OFFSET, BOUNDING_RECT_SIZE, BOUNDING_RECT_SIZE)) {
+		if(collisionCheck(32 - 10, 32, 1, 1)) {
 			notMoving = false;
 			player.moveLeft();
 		}
@@ -162,15 +192,31 @@ function render(){
 	gameMap.render();
 }
 
+function countDownBeforeGameLoop() {
+	countdown = Date.now();
+	counterloop = setInterval(function() {
+		announcement.style.setProperty('opacity', 1);
+		var diff = parseInt((Date.now() - countdown)/800);
+		diff = 3 - diff;
+		if(diff == 0) {
+			clearInterval(counterloop);
+			announcement.style.setProperty('opacity', 0);
+			startGameLoop();
+			return;
+		}
+		announcement.innerHTML = parseInt(diff);
+	})
+}
+
 function checkGameState() {
 	if(Date.now() - lastIdle > TIME_ALIVE) {
 		gameOver();
-	}else if (!collisionCheck(6, 8, 20, 10)) {
+	}else if (!collisionCheck(32, 32, 1, 1)) {
 		gameOver();	
 	} else if(gameMap.isSatisfied() && playerIsAtFinishTile()) {
 		nextLevel();
 	} else {
-		gameMap.isSteppingOn(player.left + 8, player.top + 8, 20, 20);
+		gameMap.isSteppingOn(player.left + 30, player.top + 30, 2, 2);
 	}
 }
 
@@ -180,9 +226,17 @@ function playerIsAtFinishTile() {
 }
 
 function nextLevel() {
+	player.stopMoving();
 	mapLevel++;
-	mapDisplay.getContext('2d').clearRect(0, 0, 1024, 640);
+	clearScreen();
 	setMapLevel(mapLevel, MAP_LEFT, MAP_TOP);
+	clearInterval(gameloop);
+	countDownBeforeGameLoop();
+}
+
+function clearScreen() {
+	mapDisplay.getContext('2d').clearRect(0, 0, 1024, 640);
+	display.getContext('2d').clearRect(0, 0, 1024, 640);
 }
 
 function gameOver() {
@@ -204,6 +258,7 @@ function showRestartButton() {
 	startButton.innerHTML = 'Restart Fross';
 	startButton.style.setProperty('z-index', 10);
 	startButton.style.setProperty('opacity', 1);
+	document.addEventListener('keydown', keyDownHandler);
 }
 
 function restartGame() {
