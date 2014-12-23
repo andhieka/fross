@@ -205,7 +205,7 @@ function countDownBeforeGameLoop() {
 			return;
 		}
 		announcement.innerHTML = parseInt(diff);
-	})
+	}, 100)
 }
 
 function checkGameState() {
